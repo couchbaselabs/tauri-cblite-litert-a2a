@@ -74,6 +74,8 @@
   /* presenter caption + embed mode */
   #cap { position:fixed; left:0; right:0; bottom:0; padding:14px 24px; background:#1c1917; color:#fff; font-size:19px; text-align:center; transform:translateY(110%); transition:transform .4s; z-index:9; }
   #cap.on { transform:none; }
+  body.embed, body.embed * { cursor:none !important; }
+  body.embed #linkCard { order:0; } body.embed #topoCard { order:1; } body.embed #formCard { order:2; } body.embed #topo { max-height:104px; } body.embed #secCard { display:none; } body.embed #cap { display:none; }
   body.embed header { padding:12px 16px 2px; } body.embed header h1 { display:none; }
   body.embed main { padding:6px 16px 70px; grid-template-columns:1fr; } body.embed .hide-embed { display:none; }
 </style>
@@ -131,7 +133,7 @@
     </section>
     <section class="hide-embed"><h2>The mesh</h2><ul id="mesh"><li class="empty">…</li></ul></section>
     <section><h2>Tasks on this node</h2><ul id="tasks"><li class="empty">Nothing yet.</li></ul></section>
-    <section><h2>Security</h2><div id="sec" class="small mut">…</div></section>
+    <section id="secCard"><h2>Security</h2><div id="sec" class="small mut">…</div></section>
   </div>
 </main>
 <div id="cap"></div>
@@ -355,7 +357,7 @@ document.querySelectorAll("[data-s]").forEach((b) => (b.onclick = () => { $("not
 $("submit").onclick = () => { const n = $("note").value.trim(); if (n) { runJob(n); $("note").value = ""; } };
 
 // ── ?autoplay=1: a presenter mode that walks through the story by itself ────────────────────────────────
-async function caption(t, ms) { const c = $("cap"); c.textContent = t; c.classList.add("on"); await sleep(ms); }
+async function caption(t, ms) { try { parent.postMessage({ cap: t }, "*"); } catch (e) {} const c = $("cap"); c.textContent = t; c.classList.add("on"); await sleep(ms); }
 async function until(cond, max = 180000) { const t0 = Date.now(); while (!cond() && Date.now() - t0 < max) await sleep(300); }
 async function typeInto(s) { const n = $("note"); n.value = ""; for (const ch of s) { n.value += ch; await sleep(18); } }
 async function autoplay() {

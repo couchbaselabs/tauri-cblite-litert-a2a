@@ -10,21 +10,28 @@
   body { display:grid; grid-template-rows:auto 1fr; }
   h1 { margin:0; padding:10px 18px; font-size:16px; letter-spacing:.02em; display:flex; gap:12px; align-items:baseline; }
   h1 small { color:var(--mut); font-weight:400; }
-  .panes { display:grid; grid-template-columns:1.25fr 1fr 1fr; gap:8px; padding:0 8px 8px; min-height:0; }
+  .panes { display:grid; grid-template-columns:1.25fr 1fr 1fr; gap:8px; padding:0 8px 70px; min-height:0; }
   .pane { display:grid; grid-template-rows:auto 1fr; min-height:0; border-radius:10px; overflow:hidden; background:#1a1816; }
   .pane b { padding:6px 12px; font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--mut); }
+  #cap { position:fixed; left:0; right:0; bottom:0; padding:16px 28px; background:#ea2328; color:#fff; font-size:24px; font-weight:600; text-align:center; transform:translateY(110%); transition:transform .4s; z-index:9; }
+  #cap.on { transform:none; }
+  body { cursor:none; }
   iframe { border:0; width:100%; height:100%; background:#f6f5f3; }
 </style>
 </head>
 <body>
 <h1>Control room <small>three devices, no cloud: each pane is a separate Couchbase Lite database, joined by peer-to-peer replication</small></h1>
 <div class="panes" id="p"></div>
+<div id="cap"></div>
 <script>
 // ?ports=18801,18802,18803 and ?autoplay=1; the panes are the tablet, the branch office and head office.
-const Q = new URLSearchParams(location.search);
+const Q = new URLSearchParams(location.search), capEl = document.getElementById("cap");
 const ports = (Q.get("ports") || "18801,18802,18803").split(",");
 const names = ["Field tablet", "Branch office", "Head office"];
-addEventListener("message", (e) => { if (e.data === "autoplay-done") document.title = "autoplay-done"; });
+addEventListener("message", (e) => {
+  if (e.data === "autoplay-done") { document.title = "autoplay-done"; capEl.classList.remove("on"); }
+  else if (e.data && e.data.cap) { capEl.textContent = e.data.cap; capEl.classList.add("on"); }
+});
 ports.forEach((p, i) => {
   const d = document.createElement("div"); d.className = "pane";
   const b = document.createElement("b"); b.textContent = names[i] || "Node " + (i + 1);

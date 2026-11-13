@@ -218,8 +218,11 @@ and it is delivered, reviewed and filed. Head office's page shows the claims arr
 Linux with the real model: report written, reviewed, filed; link cut, report written offline, queued not lost, delivered
 after reconnecting; **no document refused anywhere during normal operation**; a device with a token from another authority
 sees nothing of the mesh and the branch logs it; the tablet cannot message nodes its token does not allow). I also drove the
-real dashboard in a browser through the whole story: [docs/field-inspection-demo.mp4](docs/field-inspection-demo.mp4) is a
-25-second captioned storyboard of those screens (stills: `docs/demo-*.jpg`). The reviewer and claims rules have unit tests.
+real dashboard through the whole story: [docs/field-inspection-live.mp4](docs/field-inspection-live.mp4) is a real screen
+recording (ffmpeg `x11grab` on Xvfb, 1080p, about 90 seconds) of the control room at `/demo/all`: tablet, branch and head office side by
+side with a live topology, risk badges, claim counters, security chips and an `?autoplay=1` presenter mode that plays the
+story by itself. Reproduce it on Linux with Xvfb, WebKitGTK (python3-gi) and ffmpeg: `scripts/record-demo.sh` (it expects the env that
+`demo-field-inspection.sh` needs: `A2A_BIN`, `MODEL`, `LD_LIBRARY_PATH`). The older storyboard is [docs/field-inspection-demo.mp4](docs/field-inspection-demo.mp4). The reviewer and claims rules have unit tests.
 
 **What the demo found.** Running it exposed a bug the earlier tests missed: the tablet's own local tasks are commands
 addressed to itself, they replicate like any document, and peers refused them because the tablet's token lists only
