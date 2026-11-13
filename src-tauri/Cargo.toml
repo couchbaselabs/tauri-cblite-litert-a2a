@@ -1,0 +1,39 @@
+[workspace]
+
+[package]
+name = "cblite-a2a-app"
+version = "0.1.0"
+edition = "2021"
+description = "Desktop A2A node: tauri-plugin-cblite for storage and P2P, a2a-cblite for the protocol"
+
+[features]
+# Needs the `a2a-p2p-security` branch of tauri-plugin-cblite (opt-in TLS + credential check for the peer
+# listener, certificate pinning for replication). Without it the app still builds against the plugin's main
+# branch, and the UI refuses to continue if TLS/admission was requested but the plugin did not provide it.
+peer-security = []
+# Embed ui/ into the binary so `cargo run --features custom-protocol` works without the Tauri CLI.
+custom-protocol = ["tauri/custom-protocol"]
+
+[lib]
+name = "cblite_a2a_app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[dependencies]
+tauri = { version = "2", features = [] }
+# `enterprise` brings the URLEndpointListener (P2P) commands.
+tauri-plugin-cblite = { git = "https://github.com/ldoguin/tauri-plugin-cblite", features = ["native-cbl", "enterprise"] }
+a2a-cblite = { path = "../crates/a2a-cblite" }
+futures-util = "0.3"
+tokio = { version = "1", features = ["sync", "time", "net", "macros"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# On-device LLM agents (LiteRT-LM). Not on Windows: Google ships no runtime for it, and
+# linking the plugin there makes the exe import a missing libLiteRt.dll (it won't start).
+[target.'cfg(not(windows))'.dependencies]
+tauri-plugin-litert = { git = "https://github.com/ldoguin/tauri-plugin-litert" }
+# Same crate as the main dependency, with the on-device LLM executor switched on.
+a2a-cblite = { path = "../crates/a2a-cblite", features = ["litert"] }
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }

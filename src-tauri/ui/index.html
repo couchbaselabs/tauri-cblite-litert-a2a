@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>A2A on Couchbase Lite</title>
+<style>
+  :root { --bg:#fafaf9; --fg:#1c1917; --mut:#78716c; --line:#e7e5e4; --card:#fff; --acc:#ea2328; --ok:#15803d; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#1c1917; --fg:#f5f5f4; --mut:#a8a29e; --line:#44403c; --card:#292524; --acc:#f87171; --ok:#4ade80; } }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:24px 16px 48px; background:var(--bg); color:var(--fg); font:14px/1.5 system-ui, sans-serif; }
+  main { max-width: 860px; margin: 0 auto; display: grid; gap: 16px; }
+  h1 { font-size: 20px; margin: 0; } h2 { font-size: 13px; text-transform: uppercase; letter-spacing:.06em; color:var(--mut); margin:0 0 10px; }
+  section { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  input { flex:1 1 180px; padding:8px 10px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--fg); font:inherit; }
+  button { padding:8px 14px; border:0; border-radius:6px; background:var(--acc); color:#fff; font:inherit; cursor:pointer; }
+  button.alt { background:transparent; color:var(--fg); border:1px solid var(--line); }
+  code, pre { font: 12.5px ui-monospace, Consolas, monospace; }
+  pre { margin:10px 0 0; padding:10px; background:var(--bg); border:1px solid var(--line); border-radius:6px; overflow:auto; max-height:260px; white-space:pre-wrap; }
+  ul { margin:0; padding:0; list-style:none; display:grid; gap:6px; }
+  li { display:flex; gap:10px; align-items:center; padding:8px 10px; border:1px solid var(--line); border-radius:6px; }
+  .dot { width:8px; height:8px; border-radius:50%; background:var(--mut); } .dot.on { background:var(--ok); }
+  .mut { color:var(--mut); }
+</style>
+</head>
+<body>
+<main>
+  <h1>A2A on Couchbase Lite</h1>
+
+  <section>
+    <h2>1 · This node</h2>
+    <div class="row">
+      <input id="name" value="desktop" aria-label="Node name" />
+      <input id="httpPort" value="8080" aria-label="A2A HTTP port" style="flex:0 0 100px" />
+      <button id="start">Start node</button>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <input id="model" placeholder="Model: path to a .litertlm file (empty = demo echo agent)" aria-label="Model path" />
+      <input id="role" placeholder="Role, e.g. summarizer" aria-label="Role" style="flex:0 1 180px" />
+      <select id="template" aria-label="Chat template" style="flex:0 1 190px;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg);font:inherit">
+        <option value="auto">template: auto (plugin)</option>
+        <option value="chatml">template: chatml (Qwen)</option>
+      </select>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <input id="persona" placeholder="Persona: system instruction, e.g. You summarize text in three bullet points." aria-label="Persona" />
+    </div>
+    <div class="row" style="margin-top:8px">
+      <select id="security" aria-label="Security mode" style="flex:0 1 230px;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg);font:inherit">
+        <option value="off">security: off</option>
+        <option value="allowlist">security: signed + key list</option>
+        <option value="biscuit">security: signed + Biscuit tokens</option>
+      </select>
+      <input id="trustFile" placeholder="Key list file (trust.json), for the key list mode" aria-label="Trust file" />
+    </div>
+    <div class="row" style="margin-top:8px">
+      <input id="rootKey" placeholder="Authority public key (Biscuit mode)" aria-label="Authority public key" />
+      <input id="tokenFile" placeholder="This node's token file (Biscuit mode)" aria-label="Token file" />
+    </div>
+    <div class="row" style="margin-top:8px">
+      <input id="dbPassword" type="password" placeholder="Database password: encrypts the database at rest (empty = not encrypted)" aria-label="Database password" autocomplete="off" />
+    </div>
+    <p class="mut" style="margin:8px 0 0">On-device LLM agents need Linux or macOS; the Windows build has no LiteRT-LM runtime.</p>
+    <pre id="info">Not started.</pre>
+  </section>
+
+  <section>
+    <h2>2 · Peer-to-peer</h2>
+    <div class="row">
+      <button id="listen" class="alt">Host (start listener)</button>
+    </div>
+    <pre id="listenInfo" class="mut">Host to let others dial in, or dial one below.</pre>
+    <div class="row" style="margin-top:10px">
+      <label class="mut"><input id="tls" type="checkbox" style="flex:0 0 auto" /> TLS (wss://)</label>
+      <label class="mut"><input id="admit" type="checkbox" style="flex:0 0 auto" /> require credentials (Biscuit tokens)</label>
+    </div>
+    <textarea id="pinCert" rows="2" aria-label="Pinned peer certificate" placeholder="Pin a peer's certificate (PEM) when dialing a wss:// peer. Empty: accept any self-signed certificate (encrypted, but the server is not authenticated)." style="width:100%;margin-top:8px;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg);font:12px ui-monospace,Consolas,monospace"></textarea>    <div class="row" style="margin-top:10px">
+      <input id="peerUrl" placeholder="ws://192.168.1.20:5555/a2a" aria-label="Peer URL" />
+      <button id="connect">Connect to peer</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>3 · Agents in the mesh</h2>
+    <ul id="agents"><li class="mut">Nothing yet.</li></ul>
+  </section>
+
+  <section>
+    <h2>4 · Send a task</h2>
+    <div class="row">
+      <input id="tenant" placeholder="target node id (empty = this node)" aria-label="Target node" />
+      <input id="text" value="hello from the desktop" aria-label="Message" />
+      <button id="send">Send</button>
+    </div>
+    <pre id="result" class="mut">Try "ask", "fail" or "slow" as the message.</pre>
+  </section>
+
+  <section>
+    <h2>5 · Security</h2>
+    <pre id="sec" class="mut">Start the node to see its trust status.</pre>
+  </section>
+</main>
+
+<script>
+  const { invoke } = window.__TAURI__.core;
+  const $ = (id) => document.getElementById(id);
+  const COLLS = ["a2a.inbox", "a2a.tasks", "a2a.agents", "a2a.revocations"];
+  const show = (el, v) => { el.textContent = typeof v === "string" ? v : JSON.stringify(v, null, 2); el.classList.remove("mut"); };
+  const guard = (el, fn) => async () => { try { await fn(); } catch (e) { show(el, "Error: " + e); } };
+
+  $("start").onclick = guard($("info"), async () => {
+    const path = await invoke("a2a_data_dir");
+    // The plugin opens the database and creates the three collections.
+    await invoke("plugin:cblite|open_database", { path, name: "a2a", encryptionPassword: $("dbPassword").value || null, collections: COLLS });
+    show($("info"), "Starting…" + ($("model").value ? " (loading model, this can take a while)" : ""));
+    const info = await invoke("a2a_start", {
+      name: $("name").value, httpPort: Number($("httpPort").value) || null,
+      modelPath: $("model").value || null, role: $("role").value || null, persona: $("persona").value || null, template: $("template").value,
+      security: $("security").value, trustFile: $("trustFile").value || null,
+      rootKey: $("rootKey").value || null, tokenFile: $("tokenFile").value || null, revokedFile: null,
+    });
+    show($("info"), info);
+    refresh(); setInterval(refresh, 2000);
+  });
+
+  $("listen").onclick = guard($("listenInfo"), async () => {
+    const wantTls = $("tls").checked, wantAdmit = $("admit").checked;
+    const r = await invoke("plugin:cblite|start_peer_listener", {
+      collections: COLLS, port: null, readOnly: false,
+      tls: wantTls || null, commonName: $("name").value || null, requireCredentials: wantAdmit || null,
+    });
+    // An older plugin ignores options it does not know. Never carry on unprotected without saying so.
+    const missing = [];
+    if (wantTls && r.tls !== true) missing.push("TLS");
+    if (wantAdmit && r.authenticated !== true) missing.push("the credential check");
+    if (missing.length) {
+      await invoke("plugin:cblite|stop_peer_listener").catch(() => {});
+      throw (`the plugin did not provide ${missing.join(" and ")} (it needs the a2a-p2p-security branch of tauri-plugin-cblite, and this app the peer-security feature). The listener was stopped.`);
+    }
+    let text = "Peers can dial:\n" + r.urls.join("\n");
+    if (r.certificate) {
+      const path = await invoke("a2a_save_cert", { pem: r.certificate });
+      text += `\n\nCertificate (give it to peers that should pin it):\n${path}`;
+    }
+    if (r.authenticated) text += "\nPeers must present a token.";
+    show($("listenInfo"), text);
+  });
+
+  $("connect").onclick = guard($("listenInfo"), async () => {
+    const url = $("peerUrl").value.trim();
+    const pin = $("pinCert").value.trim();
+    const wss = url.startsWith("wss://");
+    // Fails closed: with "require credentials" and no token there is no connection.
+    const cred = $("admit").checked ? await invoke("a2a_credential") : null;
+    // One replicator, four collections, push+pull. The label lets several peers run at once.
+    await invoke("plugin:cblite|start_replication", {
+      url, collection: COLLS[0], direction: "both",
+      username: cred ? cred.username : null, password: cred ? cred.password : null, sessionId: null, cookieName: null,
+      fieldEncryptionPassword: null, fieldEncryptionSalt: null,
+      extraCollections: COLLS.slice(1), channels: null, label: "peer:" + url,
+      pinnedCertificate: pin || null, acceptSelfSigned: wss && !pin ? true : null,
+    });
+    show($("listenInfo"), `Replicating with ${url}` + (wss ? (pin ? " (certificate pinned)" : " (encrypted, but the server is NOT authenticated: no certificate pinned)") : " (plain ws://)"));
+  });
+
+  async function refresh() {
+    try {
+      const agents = await invoke("a2a_agents");
+      $("agents").replaceChildren(...agents.map((a) => {
+        const li = document.createElement("li");
+        li.innerHTML = `<span class="dot ${a.online ? "on" : ""}"></span><strong></strong><code></code><span class="mut"></span>`;
+        li.children[1].textContent = a.name + (a.self ? " (this node)" : "");
+        li.children[2].textContent = a.nodeId;
+        li.children[3].textContent = "skills: " + a.skills.join(", ");
+        li.onclick = () => { $("tenant").value = a.self ? "" : a.nodeId; };
+        return li;
+      }));
+    } catch (_) { /* node not started yet */ }
+    try {
+      const s = await invoke("a2a_security");
+      if (!s.secure) { show($("sec"), "Security is OFF: every replicated document is believed."); return; }
+      const rej = (s.rejections || []).map((r) => `  x${r.count}  ${r.collection}/${r.docId}${r.author ? " (" + r.author + ")" : ""}: ${r.reason}`);
+      show($("sec"), [
+        `mode: ${s.mode}   node: ${s.nodeId}`,
+        `public key (give this to whoever trusts this node): ${s.publicKey}`,
+        s.mode === "allowlist" ? `trusted peers: ${(s.enrolled || []).join(", ") || "(none)"}` : "peers are trusted through tokens from the authority",
+        rej.length ? `refused or restored:\n${rej.join("\n")}` : "nothing refused so far.",
+      ].join("\n"));
+    } catch (_) { /* node not started yet */ }
+  }
+
+  // Automation hook (env A2A_AUTOSTART): fill the form and press the buttons.
+  (async () => {
+    const cfg = await invoke("a2a_autostart").catch(() => null);
+    if (!cfg) return;
+    for (const [id, key] of [["name","name"],["httpPort","httpPort"],["model","model"],["role","role"],["persona","persona"],["template","template"],["peerUrl","connect"],["security","security"],["trustFile","trustFile"],["rootKey","rootKey"],["tokenFile","tokenFile"],["dbPassword","dbPassword"],["pinCert","pinCert"]]) {
+      if (cfg[key] != null) $(id).value = cfg[key];
+    }
+    if (cfg.tls) $("tls").checked = true;
+    if (cfg.admit) $("admit").checked = true;
+    await $("start").onclick();
+    if (cfg.host) await $("listen").onclick();
+    if (cfg.connect) await $("connect").onclick();
+  })();
+
+  $("send").onclick = guard($("result"), async () => {
+    show($("result"), "Sending…");
+    const task = await invoke("a2a_send", { tenant: $("tenant").value || null, text: $("text").value });
+    // Answer first (artifact parts joined; streamed answers arrive as many small parts), raw task below.
+    const answer = (task.artifacts || []).map((a) => (a.parts || []).map((p) => p.text || "").join("")).join("\n").trim();
+    const state = String(task.status.state).replace("TASK_STATE_", "");
+    show($("result"), `${state}\n\n${answer || "(no text artifact)"}\n\n--- raw task ---\n` + JSON.stringify(task, null, 2));
+  });
+</script>
+</body>
+</html>

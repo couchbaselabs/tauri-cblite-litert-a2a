@@ -1,0 +1,32 @@
+[package]
+name = "a2a-cblite"
+version = "0.1.0"
+edition = "2021"
+description = "A2A (Agent2Agent) server on Couchbase Lite, with peer-to-peer task routing"
+license = "MIT"
+
+[features]
+default = ["enterprise"]
+# P2P (URLEndpointListener) is a Couchbase Lite Enterprise feature.
+enterprise = ["couchbase_lite/enterprise"]
+# On-device LLM executor (LiteRT-LM). Linux/macOS only: Google ships no Windows runtime.
+litert = ["dep:litertlm"]
+
+[dependencies]
+couchbase_lite.workspace = true
+axum = "0.7"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "net"] }
+tokio-stream = "0.1"
+futures-util = "0.3"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+uuid = { version = "1", features = ["v4"] }
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+log = "0.4"
+ed25519-dalek = "2"
+base64 = "0.22"
+getrandom = "0.2"
+a2a-authz = { path = "../a2a-authz" }
+
+[target.'cfg(not(windows))'.dependencies]
+litertlm = { git = "https://github.com/ldoguin/tauri-plugin-litert", optional = true }

@@ -1,0 +1,13 @@
+[package]
+name = "a2a-authz"
+version = "0.1.0"
+edition = "2021"
+description = "Scoped, expiring, delegable credentials for a2a-cblite mesh nodes (Biscuit tokens)"
+license = "MIT"
+
+[dependencies]
+biscuit-auth = "6"
+base64 = "0.22"
+ed25519-dalek = "2"
+serde_json = "1"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }

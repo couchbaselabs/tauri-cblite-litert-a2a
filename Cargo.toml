@@ -1,0 +1,6 @@
+[workspace]
+resolver = "2"
+members = ["crates/a2a-authz", "crates/a2a-cblite", "crates/a2a-node"]
+
+[workspace.dependencies]
+couchbase_lite = { git = "https://github.com/ldoguin/couchbase-lite-rust", rev = "6973ec9b8316685b1da1067670c4386484e5d95f", default-features = false }
